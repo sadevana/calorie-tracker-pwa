@@ -75,10 +75,7 @@ class Repository {
     async addMeal(meal) {
         await this.ensureDB();
         return this.performTransaction(this.stores.meals, 'readwrite', store => {
-            return store.add({
-                ...meal,
-                date: meal.date.toISOString().split('T')[0]
-            });
+            return store.add(meal);
         });
     }
 

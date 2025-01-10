@@ -22,14 +22,27 @@ class MainScreen {
         const settings = await this.service.getSettings();
         console.log('Settings loaded:', settings);
         
-        const meals = await this.service.getMealHistory(new Date());
-        console.log('Meals loaded:', meals);
+        // Get meals for the last 7 days
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 6);
         
-        const totals = this.service.getDailyTotals(meals);
+        const allMeals = [];
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const meals = await this.service.getMealHistory(new Date(d));
+            if (meals && meals.length > 0) {
+                allMeals.push(...meals);
+            }
+        }
+        console.log('Meals loaded:', allMeals);
+        
+        const totals = this.service.getDailyTotals(allMeals.filter(m => 
+            m.date === endDate.toISOString().split('T')[0]
+        ));
         console.log('Totals calculated:', totals);
         
         this.renderNutritionSummary(totals, settings);
-        this.renderMealsList(meals);
+        this.renderMealsList(allMeals);
     }
 
     renderNutritionSummary(totals, settings) {
@@ -64,32 +77,66 @@ class MainScreen {
     renderMealsList(meals) {
         console.log('Rendering meals list...');
         if (meals.length === 0) {
-            this.mealsList.innerHTML = '<p>No meals recorded today</p>';
+            this.mealsList.innerHTML = '<p>No meals recorded</p>';
             return;
         }
 
-        this.mealsList.innerHTML = meals.map(meal => `
-            <div class="meal-entry">
-                <div class="meal-header">
-                    <span class="meal-time">${new Date(meal.date).toLocaleTimeString()}</span>
-                    <span class="meal-total">${meal.totalCalories} cal</span>
-                </div>
-                <div class="meal-details">
-                    ${meal.products.map(p => `
-                        <div class="product-line">
-                            <span>${p.productName}</span>
-                            <span>${p.grams}g</span>
-                            <span>${p.calories} cal</span>
+        // Group meals by date
+        const mealsByDate = meals.reduce((groups, meal) => {
+            const date = meal.date;
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(meal);
+            return groups;
+        }, {});
+
+        // Sort dates in descending order
+        const sortedDates = Object.keys(mealsByDate).sort().reverse();
+
+        this.mealsList.innerHTML = sortedDates.map(date => {
+            const dayMeals = mealsByDate[date];
+            const dayTotals = this.service.getDailyTotals(dayMeals);
+            const dateObj = new Date(date);
+            const isToday = date === new Date().toISOString().split('T')[0];
+            const dateDisplay = isToday ? 'Today' : dateObj.toLocaleDateString();
+
+            return `
+                <div class="day-group">
+                    <div class="day-header">
+                        <h3>${dateDisplay}</h3>
+                        <div class="day-totals">
+                            <span>${dayTotals.calories} cal</span>
+                            <span>F: ${dayTotals.fats}g</span>
+                            <span>P: ${dayTotals.protein}g</span>
+                            <span>C: ${dayTotals.carbs}g</span>
+                        </div>
+                    </div>
+                    ${dayMeals.map(meal => `
+                        <div class="meal-entry">
+                            <div class="meal-header">
+                                <span class="meal-time">${new Date(meal.timestamp).toLocaleTimeString()}</span>
+                                <span class="meal-total">${meal.totalCalories} cal</span>
+                            </div>
+                            <div class="meal-details">
+                                ${meal.products.map(p => `
+                                    <div class="product-line">
+                                        <span>${p.productName}</span>
+                                        <span>${p.grams}g</span>
+                                        <span>${p.calories} cal</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="meal-nutrients">
+                                <span>F: ${meal.totalFats}g</span>
+                                <span>P: ${meal.totalProtein}g</span>
+                                <span>C: ${meal.totalCarbs}g</span>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
-                <div class="meal-nutrients">
-                    <span>F: ${meal.totalFats}g</span>
-                    <span>P: ${meal.totalProtein}g</span>
-                    <span>C: ${meal.totalCarbs}g</span>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     setupInfiniteScroll() {

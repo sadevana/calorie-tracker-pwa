@@ -304,4 +304,40 @@ button:hover {
 
 .meal-nutrients span {
     white-space: nowrap;
+}
+
+.day-group {
+    margin-bottom: 2rem;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+}
+
+.day-header h3 {
+    font-size: 1.1rem;
+    color: #333;
+    margin: 0;
+}
+
+.day-totals {
+    display: flex;
+    gap: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.day-totals span {
+    white-space: nowrap;
+}
+
+.day-totals span:first-child {
+    color: #4CAF50;
+    font-weight: 500;
 } 

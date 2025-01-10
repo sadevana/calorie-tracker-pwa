@@ -41,11 +41,12 @@ class NutritionService {
         }
 
         const allProducts = await this.repository.getAllProducts();
-        
         const productMap = new Map(allProducts.map(p => [p.id, p]));
 
+        const now = new Date();
         const meal = {
-            date: new Date(),
+            date: now.toISOString().split('T')[0], // For date indexing
+            timestamp: now.toISOString(), // For display
             products: products.map(p => {
                 const product = productMap.get(p.productId);
                 if (!product) {
