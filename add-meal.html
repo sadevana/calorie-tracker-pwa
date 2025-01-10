@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Add Meal - Nutrition Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Add Meal</h1>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="add-meal.html" class="active">Add Meal</a>
+                <a href="add-product.html">Add Product</a>
+                <a href="settings.html">Settings</a>
+            </nav>
+        </header>
+        
+        <main id="app-content">
+            <div class="meal-form">
+                <div class="search-container">
+                    <input type="text" id="productSearch" placeholder="Search products...">
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+                <div id="selectedProducts" class="selected-products"></div>
+                <button id="submitMeal" class="submit-meal">Add Meal</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/db/repository.js"></script>
+    <script src="js/services/nutritionService.js"></script>
+    <script src="js/ui/addMealScreen.js"></script>
+</body>
+</html> 

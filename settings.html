@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Settings - Nutrition Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Settings</h1>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="add-meal.html">Add Meal</a>
+                <a href="add-product.html">Add Product</a>
+                <a href="settings.html" class="active">Settings</a>
+            </nav>
+        </header>
+        
+        <main id="app-content">
+            <form id="settingsForm" class="settings-form">
+                <div class="form-group">
+                    <label>Daily Calories Goal</label>
+                    <input type="number" id="caloriesGoal" required>
+                </div>
+                <div class="form-group">
+                    <label>Daily Fats Goal (g)</label>
+                    <input type="number" id="fatsGoal" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Daily Protein Goal (g)</label>
+                    <input type="number" id="proteinGoal" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Daily Carbs Goal (g)</label>
+                    <input type="number" id="carbsGoal" step="0.1">
+                </div>
+                <button type="submit">Save Settings</button>
+            </form>
+        </main>
+    </div>
+
+    <script src="js/db/repository.js"></script>
+    <script src="js/services/nutritionService.js"></script>
+    <script src="js/ui/settingsScreen.js"></script>
+</body>
+</html> 
