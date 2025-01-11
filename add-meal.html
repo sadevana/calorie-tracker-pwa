@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" type="image/png" href="icons/icon-192x192.png">
 </head>
+
 <body>
     <div class="app">
         <header>
@@ -20,7 +22,7 @@
                 <a href="settings.html">Settings</a>
             </nav>
         </header>
-        
+
         <main id="app-content">
             <div class="meal-form">
                 <div class="search-container">
@@ -33,6 +35,141 @@
         </main>
     </div>
 
-    <script type="module" src="js/ui/addMealScreen.mjs"></script>
+    <script type="module">
+        import { NutritionService } from './js/services/nutritionService.mjs';
+        import { getTypedElementById } from './js/utils/html.mjs';
+
+        /** @typedef {import('./js/services/nutritionService.mjs').Product} Product */
+        /** @typedef {import('./js/services/nutritionService.mjs').AddMealProductRequest} AddMealProductRequest */
+
+        /** @type {NutritionService} */
+        const service = new NutritionService();
+
+        /** @type {HTMLInputElement} */
+        const searchInput = getTypedElementById('productSearch');
+        /** @type {HTMLDivElement} */
+        const searchResults = getTypedElementById('searchResults');
+        /** @type {HTMLDivElement} */
+        const selectedProducts = getTypedElementById('selectedProducts');
+        /** @type {HTMLButtonElement} */
+        const submitButton = getTypedElementById('submitMeal');
+
+        /**
+         * Updates the nutrients display for a product based on grams input
+         * @param {HTMLInputElement} input - The grams input element
+         * @param {Product} product - The product to calculate nutrients for
+         */
+        function updateNutrients(input, product) {
+            const grams = parseFloat(input.value);
+            if (isNaN(grams) || grams <= 0) {
+                input.value = '';
+                input.parentElement.querySelector('.product-nutrients').innerHTML = '';
+                return;
+            }
+
+            const calories = service.calculateNutrient(product.calories, grams);
+            const fats = service.calculateNutrient(product.fat, grams);
+            const protein = service.calculateNutrient(product.protein, grams);
+            const carbs = service.calculateNutrient(product.carbs, grams);
+
+            input.parentElement.querySelector('.product-nutrients').innerHTML = `
+                <span>${calories} cal</span>
+                <span>F: ${fats}g</span>
+                <span>P: ${protein}g</span>
+                <span>C: ${carbs}g</span>
+            `;
+        }
+
+        /**
+         * Adds a product to the selected products list
+         * @param {Product} product - The product to add
+         */
+        function addProduct(product) {
+            const productId = `meal-product-${product.id}`;
+
+            if (document.getElementById(productId)) {
+                return;
+            }
+
+            const productElement = document.createElement('div');
+            productElement.id = productId;
+            productElement.className = 'selected-product';
+
+            const productHtml = `
+                <div class="product-info">
+                    <div class="product-name">${product.name}</div>
+                    <input type="number" placeholder="Grams" class="grams-input">
+                    <div class="product-nutrients"></div>
+                </div>
+                <button class="remove-btn">Remove</button>
+            `;
+
+            productElement.innerHTML = productHtml;
+
+            // Add event listeners to the new elements
+            const gramsInput = productElement.querySelector('.grams-input');
+            gramsInput.addEventListener('change', () => updateNutrients(gramsInput, product));
+
+            const removeBtn = productElement.querySelector('.remove-btn');
+            removeBtn.addEventListener('click', () => productElement.remove());
+
+            selectedProducts.appendChild(productElement);
+            searchInput.value = '';
+            searchResults.innerHTML = '';
+        }
+
+        // Add event listeners
+        searchInput.addEventListener('input', async (e) => {
+            const query = searchInput.value;
+            if (!query) {
+                searchResults.innerHTML = '';
+                return;
+            }
+
+            const products = await service.searchProducts(query);
+            searchResults.innerHTML = products.map(product => `
+                <div class="search-result" data-product='${JSON.stringify(product)}'>
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-nutrients">
+                        <span>${product.calories} cal</span>
+                        <span>F: ${product.fat}g</span>
+                        <span>P: ${product.protein}g</span>
+                        <span>C: ${product.carbs}g</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click listeners to search results
+            const resultElements = searchResults.querySelectorAll('.search-result');
+            resultElements.forEach(element => {
+                element.addEventListener('click', () => {
+                    const product = JSON.parse(element.dataset.product);
+                    addProduct(product);
+                });
+            });
+        });
+
+        submitButton.addEventListener('click', async () => {
+            const products =  /** @type {AddMealProductRequest[]} */ Array.from(selectedProducts.children).map(el => {
+                const productId = el.id.replace('meal-product-', '');
+                const input = /** @type {HTMLInputElement} */ (el.querySelector('.grams-input'));
+                const grams = parseFloat(input.value);
+                return { productId, grams };
+            });
+
+            if (products.length === 0) {
+                alert('Please add at least one product to the meal');
+                return;
+            }
+
+            try {
+                await service.addMeal(products);
+                window.location.href = 'index.html';
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    </script>
 </body>
-</html> 
+
+</html>

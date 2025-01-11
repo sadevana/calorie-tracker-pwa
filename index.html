@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" type="image/png" href="icons/icon-192x192.png">
 </head>
+
 <body>
     <div class="app">
         <header>
@@ -20,7 +22,7 @@
                 <a href="settings.html">Settings</a>
             </nav>
         </header>
-        
+
         <main id="app-content">
             <div class="daily-summary" id="dailySummary"></div>
             <div class="meals-list" id="mealsList"></div>
@@ -35,6 +37,154 @@
                 .catch(error => console.log('ServiceWorker registration failed:', error));
         }
     </script>
-    <script type="module" src="js/ui/mainScreen.mjs" defer></script>
+    <script type="module">
+        import { NutritionService } from './js/services/nutritionService.mjs';
+        import { getTypedElementById } from './js/utils/html.mjs';
+
+        /** @typedef {import('./js/services/nutritionService.mjs').Settings} Settings */
+        /** @typedef {import('./js/services/nutritionService.mjs').Meal} Meal */
+        /** @typedef {import('./js/services/nutritionService.mjs').DailyTotals} DailyTotals */
+
+        /** @type {NutritionService} */
+        const service = new NutritionService();
+        /** @type {HTMLDivElement} */
+        const dailySummary = getTypedElementById('dailySummary');
+        /** @type {HTMLDivElement} */
+        const mealsList = getTypedElementById('mealsList');
+
+        /**
+         * Renders a nutrient card with progress bar
+         * @param {string} name - Name of the nutrient
+         * @param {number} value - Current value
+         * @param {number|null} goal - Target value
+         * @returns {string} HTML string for the nutrient card
+         */
+        function renderNutrientCard(name, value, goal) {
+            if (!goal) return '';
+            return `
+                <div class="nutrient-card">
+                    <h3>${name}</h3>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: ${(value / goal * 100)}%"></div>
+                    </div>
+                    <p>${value?.toFixed(1) || 0}g / ${goal}g</p>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the daily nutrition summary
+         * @param {DailyTotals} totals - Current day's nutrition totals
+         * @param {Settings} settings - User's nutrition goals
+         */
+        function renderDailySummary(totals, settings) {
+            console.log('Rendering nutrition summary...');
+            dailySummary.innerHTML = `
+                <div class="nutrient-card">
+                    <h3>Calories</h3>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: ${(totals.calories / settings.targetCalories * 100)}%"></div>
+                    </div>
+                    <p>${totals.calories} / ${settings.targetCalories}</p>
+                </div>
+                ${renderNutrientCard('Fats', totals.fats, settings.targetFat)}
+                ${renderNutrientCard('Protein', totals.protein, settings.targetProtein)}
+                ${renderNutrientCard('Carbs', totals.carbs, settings.targetCarbs)}
+            `;
+        }
+
+        /**
+         * Renders the meals list grouped by date
+         * @param {Meal[]} meals - List of meals to render
+         */
+        function renderMealsList(meals) {
+            console.log('Rendering meals list...');
+            if (meals.length === 0) {
+                mealsList.innerHTML = '<p>No meals recorded</p>';
+                return;
+            }
+
+            // Group meals by date
+            const mealsByDate = meals.reduce((groups, meal) => {
+                const date = meal.date;
+                if (!groups[date]) {
+                    groups[date] = [];
+                }
+                groups[date].push(meal);
+                return groups;
+            }, {});
+
+            // Sort dates in descending order
+            const sortedDates = Object.keys(mealsByDate).sort().reverse();
+
+            mealsList.innerHTML = sortedDates.map(date => {
+                const dayMeals = mealsByDate[date];
+                const dayTotals = service.getDailyTotals(dayMeals);
+                const dateObj = new Date(date);
+                const isToday = date === new Date().toISOString().split('T')[0];
+                const dateDisplay = isToday ? 'Today' : dateObj.toLocaleDateString();
+
+                return `
+                    <div class="day-group">
+                        <div class="day-header">
+                            <h3>${dateDisplay}</h3>
+                            <div class="day-totals">
+                                <span>${dayTotals.calories} cal</span>
+                                <span>F: ${dayTotals.fats}g</span>
+                                <span>P: ${dayTotals.protein}g</span>
+                                <span>C: ${dayTotals.carbs}g</span>
+                            </div>
+                        </div>
+                        ${dayMeals.map(meal => `
+                            <div class="meal-entry">
+                                <div class="meal-header">
+                                    <span class="meal-time">${new Date(meal.timestamp).toLocaleTimeString()}</span>
+                                    <span class="meal-total">${meal.totalCalories} cal</span>
+                                </div>
+                                <div class="meal-details">
+                                    ${meal.products.map(p => `
+                                        <div class="product-line">
+                                            <span>${p.productName}</span>
+                                            <span>${p.grams}g</span>
+                                            <span>${p.calories} cal</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="meal-nutrients">
+                                    <span>F: ${meal.totalFat}g</span>
+                                    <span>P: ${meal.totalProtein}g</span>
+                                    <span>C: ${meal.totalCarbs}g</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize the screen only after DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('Loading content...');
+                const settings = await service.getSettings();
+                console.log('Settings loaded:', settings);
+
+                const allMeals = await service.getMealHistory();
+                console.log('Meals loaded:', allMeals);
+
+                const todayMeals = allMeals.filter(m =>
+                    m.date === new Date().toISOString().split('T')[0]
+                );
+                const totals = service.getDailyTotals(todayMeals);
+                console.log('Totals calculated:', totals);
+
+                renderDailySummary(totals, settings);
+                renderMealsList(allMeals);
+            } catch (error) {
+                console.error('Error loading content:', error);
+            }
+        });
+    </script>
 </body>
-</html> 
+
+</html>

@@ -50,54 +50,52 @@
         import { NutritionService } from './js/services/nutritionService.mjs';
         import { getTypedElementById } from './js/utils/html.mjs';
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            /** @type {NutritionService} */
-            const service = new NutritionService();
+        /** @type {NutritionService} */
+        const service = new NutritionService();
 
-            /** @type {HTMLFormElement} */
-            const form = getTypedElementById('settingsForm');
-            /** @type {HTMLInputElement} */
-            const caloriesEl = getTypedElementById('caloriesTarget');
-            /** @type {HTMLInputElement} */
-            const fatsEl = getTypedElementById('fatsTarget');
-            /** @type {HTMLInputElement} */
-            const proteinEl = getTypedElementById('proteinTarget');
-            /** @type {HTMLInputElement} */
-            const carbsEl = getTypedElementById('carbsTarget');
+        /** @type {HTMLFormElement} */
+        const form = getTypedElementById('settingsForm');
+        /** @type {HTMLInputElement} */
+        const caloriesEl = getTypedElementById('caloriesTarget');
+        /** @type {HTMLInputElement} */
+        const fatsEl = getTypedElementById('fatsTarget');
+        /** @type {HTMLInputElement} */
+        const proteinEl = getTypedElementById('proteinTarget');
+        /** @type {HTMLInputElement} */
+        const carbsEl = getTypedElementById('carbsTarget');
 
-            try {
-                const settings = await service.getSettings();
+        try {
+            const settings = await service.getSettings();
 
-                if (!settings) {
-                    alert('No settings found. Please set your target values.');
-                } else {
-                    caloriesEl.value = settings.targetCalories?.toString() ?? '';
-                    fatsEl.value = settings.targetFat?.toString() ?? '';
-                    proteinEl.value = settings.targetProtein?.toString() ?? '';
-                    carbsEl.value = settings.targetCarbs?.toString() ?? '';
-                }
-            } catch (err) {
-                console.error('Error fetching settings:', err);
-                alert('Failed to load settings. Please see console for details.');
+            if (!settings) {
+                alert('No settings found. Please set your target values.');
+            } else {
+                caloriesEl.value = settings.targetCalories?.toString() ?? '';
+                fatsEl.value = settings.targetFat?.toString() ?? '';
+                proteinEl.value = settings.targetProtein?.toString() ?? '';
+                carbsEl.value = settings.targetCarbs?.toString() ?? '';
             }
+        } catch (err) {
+            console.error('Error fetching settings:', err);
+            alert('Failed to load settings. Please see console for details.');
+        }
 
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                try {
-                    const newSettings = {
-                        targetCalories: Number(caloriesEl.value),
-                        targetFat: fatsEl.value ? Number(fatsEl.value) : null,
-                        targetProtein: proteinEl.value ? Number(proteinEl.value) : null,
-                        targetCarbs: carbsEl.value ? Number(carbsEl.value) : null,
-                    };
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            try {
+                const newSettings = {
+                    targetCalories: Number(caloriesEl.value),
+                    targetFat: fatsEl.value ? Number(fatsEl.value) : null,
+                    targetProtein: proteinEl.value ? Number(proteinEl.value) : null,
+                    targetCarbs: carbsEl.value ? Number(carbsEl.value) : null,
+                };
 
-                    await service.saveSettings(newSettings);
-                    window.location.href = 'index.html';
-                } catch (err) {
-                    console.error('Error saving settings:', err);
-                    alert('Failed to save settings. Please see console for details.');
-                }
-            });
+                await service.saveSettings(newSettings);
+                window.location.href = 'index.html';
+            } catch (err) {
+                console.error('Error saving settings:', err);
+                alert('Failed to save settings. Please see console for details.');
+            }
         });
     </script>
 </body>

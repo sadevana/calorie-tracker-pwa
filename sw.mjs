@@ -10,9 +10,7 @@ const ASSETS_TO_CACHE = [
     '/css/styles.css',
     '/js/db/repository.mjs',
     '/js/services/nutritionService.mjs',
-    '/js/ui/mainScreen.mjs',
-    '/js/ui/addMealScreen.mjs',
-    '/js/ui/addProductScreen.mjs',
+    '/js/utils/html.mjs',
     '/manifest.json',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png'

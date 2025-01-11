@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" type="image/png" href="icons/icon-192x192.png">
 </head>
+
 <body>
     <div class="app">
         <header>
@@ -20,7 +22,7 @@
                 <a href="settings.html">Settings</a>
             </nav>
         </header>
-        
+
         <main id="app-content">
             <form id="productForm" class="product-form">
                 <div class="form-group">
@@ -48,6 +50,47 @@
         </main>
     </div>
 
-    <script type="module" src="js/ui/addProductScreen.mjs"></script>
+    <script type="module">
+        import { NutritionService } from './js/services/nutritionService.mjs';
+        import { getTypedElementById } from './js/utils/html.mjs';
+
+        /** @typedef {import('./js/services/nutritionService.mjs').AddProductRequest} AddProductRequest */
+
+        /** @type {NutritionService} */
+        const service = new NutritionService();
+
+        /** @type {HTMLInputElement} */
+        const productName = getTypedElementById('productName');
+        /** @type {HTMLInputElement} */
+        const calories = getTypedElementById('calories');
+        /** @type {HTMLInputElement} */
+        const fats = getTypedElementById('fats');
+        /** @type {HTMLInputElement} */
+        const protein = getTypedElementById('protein');
+        /** @type {HTMLInputElement} */
+        const carbs = getTypedElementById('carbs');
+        /** @type {HTMLFormElement} */
+        const form = getTypedElementById('productForm');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                /** @type {AddProductRequest} */
+                const product = {
+                    name: productName.value,
+                    calories: calories.value,
+                    fats: fats.value,
+                    protein: protein.value,
+                    carbs: carbs.value
+                };
+
+                await service.addProduct(product);
+                window.location.href = 'index.html';
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    </script>
 </body>
-</html> 
+
+</html>

@@ -8,63 +8,9 @@ import { Repository } from '../db/repository.mjs';
 
 export class NutritionService {
     /** @type {Repository} */ repository;
-    
+
     constructor() {
         this.repository = new Repository();
-    }
-
-    /**
-     * Convert DB product to service product
-     * @param {DbProduct} dbProduct
-     * @returns {Product}
-     */
-    mapDbProductToProduct(dbProduct) {
-        const { nameLower, ...product } = dbProduct;
-        return product;
-    }
-
-    /**
-     * Convert service product to DB product
-     * @param {AddProductRequest} request
-     * @returns {DbProduct}
-     */
-    mapProductRequestToDbProduct(request) {
-        return {
-            name: request.name.trim(),
-            nameLower: request.name.trim().toLowerCase(),
-            calories: Number(request.calories),
-            fat: Number(request.fats),
-            protein: Number(request.protein),
-            carbs: Number(request.carbs)
-        };
-    }
-
-    /**
-     * Convert DB meal to service meal
-     * @param {DbMeal} dbMeal
-     * @returns {Meal}
-     */
-    mapDbMealToMeal(dbMeal) {
-        return dbMeal;
-    }
-
-    /**
-     * Convert DB settings to service settings
-     * @param {DbSettings} dbSettings
-     * @returns {Settings}
-     */
-    mapDbSettingsToSettings(dbSettings) {
-        const { id, ...settings } = dbSettings;
-        return settings;
-    }
-
-    /**
-     * Convert service settings to DB settings
-     * @param {Settings} settings
-     * @returns {DbSettings}
-     */
-    mapSettingsToDbSettings(settings) {
-        return settings;
     }
 
     /**
@@ -111,6 +57,8 @@ export class NutritionService {
 
         const allProducts = await this.getAllProducts();
         const productMap = new Map(allProducts.map(p => [p.id, p]));
+
+        console.log(productMap);
 
         const now = new Date();
         const mealProducts = products.map(p => {
@@ -181,7 +129,63 @@ export class NutritionService {
         return dbSettings ? this.mapDbSettingsToSettings(dbSettings) : defaultSettings;
     }
 
+    // mappers
 
+    /**
+     * Convert DB product to service product
+     * @param {DbProduct} dbProduct
+     * @returns {Product}
+     */
+    mapDbProductToProduct(dbProduct) {
+        const { nameLower, ...product } = dbProduct;
+        return product;
+    }
+
+    /**
+     * Convert service product to DB product
+     * @param {AddProductRequest} request
+     * @returns {DbProduct}
+     */
+    mapProductRequestToDbProduct(request) {
+        return {
+            name: request.name.trim(),
+            nameLower: request.name.trim().toLowerCase(),
+            calories: Number(request.calories),
+            fat: Number(request.fats),
+            protein: Number(request.protein),
+            carbs: Number(request.carbs)
+        };
+    }
+
+    /**
+     * Convert DB meal to service meal
+     * @param {DbMeal} dbMeal
+     * @returns {Meal}
+     */
+    mapDbMealToMeal(dbMeal) {
+        return dbMeal;
+    }
+
+    /**
+     * Convert DB settings to service settings
+     * @param {DbSettings} dbSettings
+     * @returns {Settings}
+     */
+    mapDbSettingsToSettings(dbSettings) {
+        const { id, ...settings } = dbSettings;
+        return settings;
+    }
+
+    /**
+     * Convert service settings to DB settings
+     * @param {Settings} settings
+     * @returns {DbSettings}
+     */
+    mapSettingsToDbSettings(settings) {
+        return settings;
+    }
+
+    // helpers
     /**
  * Calculate nutrient value for a given amount of grams
      * @param {number} value - Value per 100g
