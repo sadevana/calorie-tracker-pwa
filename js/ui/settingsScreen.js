@@ -12,10 +12,10 @@ class SettingsScreen {
 
     async loadSettings() {
         const settings = await this.service.getSettings();
-        document.getElementById('caloriesGoal').value = settings.caloriesGoal;
-        document.getElementById('fatsGoal').value = settings.fatsGoal || '';
-        document.getElementById('proteinGoal').value = settings.proteinGoal || '';
-        document.getElementById('carbsGoal').value = settings.carbsGoal || '';
+        document.getElementById('caloriesGoal').value = settings.targetCalories;
+        document.getElementById('fatsGoal').value = settings.targetFat || '';
+        document.getElementById('proteinGoal').value = settings.targetProtein || '';
+        document.getElementById('carbsGoal').value = settings.targetCarbs || '';
     }
 
     async handleSubmit(event) {
@@ -27,7 +27,7 @@ class SettingsScreen {
                 proteinGoal: document.getElementById('proteinGoal').value || null,
                 carbsGoal: document.getElementById('carbsGoal').value || null
             };
-
+            console.log(settings);
             await this.service.saveSettings(settings);
             window.location.href = 'index.html';
         } catch (error) {

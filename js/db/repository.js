@@ -1,4 +1,62 @@
+/**
+ * @typedef {Object} DbSettings
+ * @property {string} [id] - The unique identifier for the settings
+ * @property {number} targetCalories - Daily calorie goal
+ * @property {number|null} targetProtein - Daily protein goal in grams
+ * @property {number|null} targetCarbs - Daily carbs goal in grams
+ * @property {number|null} targetFat - Daily fat goal in grams
+ */
+
+/**
+ * @typedef {Object} DbProduct
+ * @property {string} [id] - The unique identifier for the product (auto-generated if undefined)
+ * @property {string} name - Product name
+ * @property {string} nameLower - Lowercase product name for case-insensitive search
+ * @property {number} calories - Calories per 100g
+ * @property {number} protein - Protein per 100g
+ * @property {number} carbs - Carbs per 100g
+ * @property {number} fat - Fat per 100g
+ */
+
+/**
+ * @typedef {Object} DbMealProduct
+ * @property {string} productID - ID of the product
+ * @property {string} productName - Name of the product
+ * @property {number} grams - Amount in grams
+ * @property {number} calories - Total calories for this amount
+ * @property {number} protein - Total protein for this amount
+ * @property {number} carbs - Total carbs for this amount
+ * @property {number} fat - Total fat for this amount
+ */
+
+/**
+ * @typedef {Object} DbMeal
+ * @property {string} [id] - The unique identifier for the meal (auto-generated if undefined)
+ * @property {string} date - Date of the meal (YYYY-MM-DD)
+ * @property {number} timestamp - Unix timestamp of the meal
+ * @property {DbMealProduct[]} products - Products in the meal
+ * @property {number} totalCalories - Total calories of the meal
+ * @property {number} totalProtein - Total protein of the meal
+ * @property {number} totalCarbs - Total carbs of the meal
+ * @property {number} totalFat - Total fat of the meal
+ */
+
+const readonly = 'readonly';
+const readwrite = 'readwrite';
+const ascendingCursor = 'next';
+const descendingCursor = 'prev';
+
 class Repository {
+    /**
+     * @type {IDBDatabase | null}
+     */
+    db = null;
+
+    /**
+     * @type {Promise<void>}
+     */
+    initPromise = null;
+
     constructor() {
         this.dbName = 'CalorieTrackerDB';
         this.dbVersion = 1;
@@ -7,7 +65,7 @@ class Repository {
             meals: 'meals',
             settings: 'settings'
         };
-        this.init();
+        this.initPromise = this.init();
     }
 
     async init() {
@@ -21,7 +79,7 @@ class Repository {
             };
 
             request.onupgradeneeded = (event) => {
-                const db = event.target.result;
+                const db = request.result;
                 
                 // Products store with case-insensitive search
                 if (!db.objectStoreNames.contains(this.stores.products)) {
@@ -43,107 +101,97 @@ class Repository {
         });
     }
 
-    async ensureDB() {
-        if (!this.db) {
-            await this.init();
-        }
-    }
-
-    // Products methods
+    /**
+     * @param {DbProduct} product
+     * @returns {Promise}
+     */
     async addProduct(product) {
-        await this.ensureDB();
-        const productWithLowerCase = {
-            ...product,
-            nameLower: product.name.toLowerCase()
-        };
-        return this.performTransaction(this.stores.products, 'readwrite', store => {
-            return store.add(productWithLowerCase);
+        return this.performTransaction(this.stores.products, readwrite, store => {
+            return store.add(product);
         });
     }
 
+    /**
+     * @param {string} query
+     * @returns {Promise<DbProduct[]>}
+     */
     async searchProducts(query) {
-        await this.ensureDB();
         const queryLower = query.toLowerCase();
-        return this.performTransaction(this.stores.products, 'readonly', store => {
+        return this.performTransaction(this.stores.products, readonly, store => {
             return store.index('nameIndex').getAll(IDBKeyRange.bound(queryLower, queryLower + '\uffff'));
         });
     }
 
+    /**
+     * @returns {Promise<DbProduct[]>}
+     */
     async getAllProducts() {
-        await this.ensureDB();
-        return this.performTransaction(this.stores.products, 'readonly', store => {
+        return this.performTransaction(this.stores.products, readonly, store => {
             return store.getAll();
         });
     }
 
-    // Meals methods
+    /**
+     * @param {DbMeal} meal
+     * @returns {Promise}
+     */
     async addMeal(meal) {
-        await this.ensureDB();
-        return this.performTransaction(this.stores.meals, 'readwrite', store => {
+        return this.performTransaction(this.stores.meals, readwrite, store => {
             return store.add(meal);
         });
     }
 
-    async getMealsByDate(date, limit = 10, offset = 0) {
-        await this.ensureDB();
-        const dateStr = date.toISOString().split('T')[0];
-        
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.stores.meals], 'readonly');
-            const store = transaction.objectStore(this.stores.meals);
-            const meals = [];
-
-            const cursorRequest = store.index('dateIndex')
-                .openCursor(IDBKeyRange.only(dateStr), 'prev');
-
-            cursorRequest.onerror = () => reject(cursorRequest.error);
-            
-            let skipped = 0;
-            cursorRequest.onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (!cursor || meals.length >= limit) {
-                    return;
-                }
-                if (skipped < offset) {
-                    skipped++;
-                    cursor.continue();
-                    return;
-                }
-                meals.push(cursor.value);
-                cursor.continue();
-            };
-
-            transaction.oncomplete = () => resolve(meals);
-            transaction.onerror = () => reject(transaction.error);
+    /**
+     * @param {number} limit
+     * @returns {Promise<DbMeal[]>}
+     */
+    async getMeals(limit = 100) {
+        return this.performTransaction(this.stores.meals, readonly, store => {
+            return store.getAll(null, limit);
         });
     }
 
     // Settings methods
+
+    /**
+     * @type {string}
+     */
+    settingsID = 'user-settings';
+
+    /**
+     * @param {DbSettings} settings - The settings to save
+     * @returns {Promise} A promise that resolves to the result of the operation
+     */
     async saveSettings(settings) {
-        await this.ensureDB();
-        return this.performTransaction(this.stores.settings, 'readwrite', store => {
-            return store.put({ ...settings, id: 'user-settings' });
+        return this.performTransaction(this.stores.settings, readwrite, store => {
+            return store.put({ ...settings, id: this.settingsID });
         });
     }
 
+    /**
+     * @returns {Promise<DbSettings>}
+     */
     async getSettings() {
-        await this.ensureDB();
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([this.stores.settings], 'readonly');
-            const store = transaction.objectStore(this.stores.settings);
-            const request = store.get('user-settings');
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
+        return this.performTransaction(this.stores.settings, readonly, store => {
+            return store.get(this.settingsID);
         });
     }
 
     // Helper method for transactions
+
+    /**
+     * @template T
+     * @param {string} storeName - The name of the store to perform the transaction on
+     * @param {IDBTransactionMode} mode - The mode of the transaction ('readonly' or 'readwrite')
+     * @param {function(IDBObjectStore): IDBRequest<T> | Promise<T>} operation - The operation to perform on the store
+     * @returns {Promise<T>} A promise that resolves to the result of the operation
+     */
     async performTransaction(storeName, mode, operation) {
+        await this.initPromise; // Wait for initialization to complete
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([storeName], mode);
             const store = transaction.objectStore(storeName);
-            
+
             let request;
             try {
                 request = operation(store);
@@ -163,4 +211,50 @@ class Repository {
             }
         });
     }
-} 
+
+    /**
+     * Paginate through items in an IndexedDB object store using a specified index.
+     * @template T
+     * @param {string} storeName - The name of the store to perform the transaction on.
+     * @param {string} indexName - The name of the index to use for pagination.
+     * @param {IDBCursorDirection} cursorDirection - The direction of the cursor ('next', 'prev', etc.).
+     * @param {number} page - The page number (1-based).
+     * @param {number} pageSize - The number of items per page.
+     * @returns {Promise<T[]>} A promise that resolves to an array of items for the requested page.
+     */
+    async paginate(storeName, indexName, cursorDirection, page, pageSize) {
+        return this.performTransaction(storeName, 'readonly', store => {
+            return new Promise((resolve, reject) => {
+                const index = store.index(indexName);
+                const results = [];
+                let skipped = 0;
+                const startOffset = (page - 1) * pageSize;
+
+                const cursorRequest = index.openCursor(null, cursorDirection);
+
+                cursorRequest.onsuccess = () => {
+                    const cursor = cursorRequest.result;
+
+                    if (!cursor) {
+                        return resolve(results);
+                    }
+
+                    if (skipped < startOffset) {
+                        skipped++;
+                        cursor.continue();
+                        return;
+                    }
+
+                    if (results.length < pageSize) {
+                        results.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        return resolve(results);
+                    }
+                };
+
+                cursorRequest.onerror = () => reject(cursorRequest.error);
+            });
+        });
+    }
+}

@@ -26,7 +26,7 @@ class AddMealScreen {
                 <div class="product-name">${product.name}</div>
                 <div class="product-nutrients">
                     <span>${product.calories} cal</span>
-                    <span>F: ${product.fats}g</span>
+                    <span>F: ${product.fat}g</span>
                     <span>P: ${product.protein}g</span>
                     <span>C: ${product.carbs}g</span>
                 </div>
