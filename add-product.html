@@ -50,6 +50,14 @@
         </main>
     </div>
 
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.mjs')
+                .then(registration => console.log('ServiceWorker registered'))
+                .catch(error => console.log('ServiceWorker registration failed:', error));
+        }
+    </script>
     <script type="module">
         import { NutritionService } from './js/services/nutritionService.mjs';
         import { getTypedElementById } from './js/utils/html.mjs';
