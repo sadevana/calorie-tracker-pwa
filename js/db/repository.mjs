@@ -1,14 +1,5 @@
 /**
- * @typedef {Object} DbSettings
- * @property {string} [id] - The unique identifier for the settings
- * @property {number} targetCalories - Daily calorie goal
- * @property {number|null} targetProtein - Daily protein goal in grams
- * @property {number|null} targetCarbs - Daily carbs goal in grams
- * @property {number|null} targetFat - Daily fat goal in grams
- */
-
-/**
- * @typedef {Object} DbProduct
+ * @typedef {Object} Product
  * @property {string} [id] - The unique identifier for the product (auto-generated if undefined)
  * @property {string} name - Product name
  * @property {string} nameLower - Lowercase product name for case-insensitive search
@@ -19,7 +10,7 @@
  */
 
 /**
- * @typedef {Object} DbMealProduct
+ * @typedef {Object} MealProduct
  * @property {string} productID - ID of the product
  * @property {string} productName - Name of the product
  * @property {number} grams - Amount in grams
@@ -30,23 +21,34 @@
  */
 
 /**
- * @typedef {Object} DbMeal
+ * @typedef {Object} Meal
  * @property {string} [id] - The unique identifier for the meal (auto-generated if undefined)
  * @property {string} date - Date of the meal (YYYY-MM-DD)
  * @property {number} timestamp - Unix timestamp of the meal
- * @property {DbMealProduct[]} products - Products in the meal
+ * @property {MealProduct[]} products - Products in the meal
  * @property {number} totalCalories - Total calories of the meal
  * @property {number} totalProtein - Total protein of the meal
  * @property {number} totalCarbs - Total carbs of the meal
  * @property {number} totalFat - Total fat of the meal
  */
 
+/**
+ * @typedef {Object} Settings
+ * @property {string} [id] - The unique identifier for the settings
+ * @property {number} targetCalories - Daily calorie goal
+ * @property {number|null} targetProtein - Daily protein goal in grams
+ * @property {number|null} targetCarbs - Daily carbs goal in grams
+ * @property {number|null} targetFat - Daily fat goal in grams
+ */
+
+const settingsID = 'user-settings'; 
+
 const readonly = 'readonly';
 const readwrite = 'readwrite';
 const ascendingCursor = 'next';
 const descendingCursor = 'prev';
 
-class Repository {
+export class Repository {
     /**
      * @type {IDBDatabase | null}
      */
@@ -102,7 +104,7 @@ class Repository {
     }
 
     /**
-     * @param {DbProduct} product
+     * @param {Product} product
      * @returns {Promise}
      */
     async addProduct(product) {
@@ -113,7 +115,7 @@ class Repository {
 
     /**
      * @param {string} query
-     * @returns {Promise<DbProduct[]>}
+     * @returns {Promise<Product[]>}
      */
     async searchProducts(query) {
         const queryLower = query.toLowerCase();
@@ -123,7 +125,7 @@ class Repository {
     }
 
     /**
-     * @returns {Promise<DbProduct[]>}
+     * @returns {Promise<Product[]>}
      */
     async getAllProducts() {
         return this.performTransaction(this.stores.products, readonly, store => {
@@ -132,7 +134,7 @@ class Repository {
     }
 
     /**
-     * @param {DbMeal} meal
+     * @param {Meal} meal
      * @returns {Promise}
      */
     async addMeal(meal) {
@@ -143,7 +145,7 @@ class Repository {
 
     /**
      * @param {number} limit
-     * @returns {Promise<DbMeal[]>}
+     * @returns {Promise<Meal[]>}
      */
     async getMeals(limit = 100) {
         return this.performTransaction(this.stores.meals, readonly, store => {
@@ -151,29 +153,22 @@ class Repository {
         });
     }
 
-    // Settings methods
-
     /**
-     * @type {string}
-     */
-    settingsID = 'user-settings';
-
-    /**
-     * @param {DbSettings} settings - The settings to save
+     * @param {Settings} settings - The settings to save
      * @returns {Promise} A promise that resolves to the result of the operation
      */
     async saveSettings(settings) {
         return this.performTransaction(this.stores.settings, readwrite, store => {
-            return store.put({ ...settings, id: this.settingsID });
+            return store.put({ ...settings, id: settingsID });
         });
     }
 
     /**
-     * @returns {Promise<DbSettings>}
+     * @returns {Promise<Settings>}
      */
     async getSettings() {
         return this.performTransaction(this.stores.settings, readonly, store => {
-            return store.get(this.settingsID);
+            return store.get(settingsID);
         });
     }
 

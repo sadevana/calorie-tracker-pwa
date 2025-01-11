@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 const CACHE_NAME = 'nutrition-tracker-v1';
 const ASSETS_TO_CACHE = [
     '/',
@@ -6,19 +8,19 @@ const ASSETS_TO_CACHE = [
     '/add-product.html',
     '/settings.html',
     '/css/styles.css',
-    '/js/db/repository.js',
-    '/js/services/nutritionService.js',
-    '/js/ui/mainScreen.js',
-    '/js/ui/addMealScreen.js',
-    '/js/ui/addProductScreen.js',
-    '/js/ui/settingsScreen.js',
+    '/js/db/repository.mjs',
+    '/js/services/nutritionService.mjs',
+    '/js/ui/mainScreen.mjs',
+    '/js/ui/addMealScreen.mjs',
+    '/js/ui/addProductScreen.mjs',
+    '/js/ui/settingsScreen.mjs',
     '/manifest.json',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png'
 ];
 
 // Install event - cache assets
-self.addEventListener('install', event => {
+self.addEventListener('install', /** @param {ExtendableEvent} event */ event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => cache.addAll(ASSETS_TO_CACHE))
@@ -26,7 +28,7 @@ self.addEventListener('install', event => {
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', event => {
+self.addEventListener('activate', /** @param {ExtendableEvent} event */ event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
@@ -41,7 +43,7 @@ self.addEventListener('activate', event => {
 });
 
 // Fetch event - serve from cache, fall back to network
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
     event.respondWith(
         caches.match(event.request)
             .then(response => {

@@ -3,5 +3,5 @@
       "checkJs": true,
       "target": "ES6"
     },
-    "include": ["**/*.js"]
+    "include": ["**/*.js", "**/*.mjs"]
 }

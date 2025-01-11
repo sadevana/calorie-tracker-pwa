@@ -22,21 +22,11 @@
         </header>
         
         <main id="app-content">
-            <div class="nutrition-summary" id="nutritionSummary">
-                <!-- Nutrition cards will be inserted here -->
-            </div>
-            <div class="meals-list" id="mealsList">
-                <!-- Meals will be inserted here -->
-            </div>
-            <div class="load-more" id="loadMore">
-                <button>Load More</button>
-            </div>
+            <div class="daily-summary" id="dailySummary"></div>
+            <div class="meals-list" id="mealsList"></div>
         </main>
     </div>
 
-    <script src="js/db/repository.js"></script>
-    <script src="js/services/nutritionService.js"></script>
-    <script src="js/ui/mainScreen.js"></script>
     <script>
         // Register service worker
         if ('serviceWorker' in navigator) {
@@ -45,5 +35,6 @@
                 .catch(error => console.log('ServiceWorker registration failed:', error));
         }
     </script>
+    <script type="module" src="js/ui/mainScreen.js" defer></script>
 </body>
 </html> 

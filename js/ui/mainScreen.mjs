@@ -1,14 +1,19 @@
+import { NutritionService } from '../services/nutritionService.mjs';
+
 class MainScreen {
     constructor() {
         this.service = new NutritionService();
-        this.nutritionSummary = document.getElementById('nutritionSummary');
-        this.mealsList = document.getElementById('mealsList');
-        this.loadMore = document.getElementById('loadMore');
-        this.initialize();
     }
 
-    async initialize() {
-        console.log('Initializing main screen...');
+    async init() {
+        this.dailySummary = document.getElementById('dailySummary');
+        this.mealsList = document.getElementById('mealsList');
+        this.loadMore = document.getElementById('loadMore');
+
+        if (!this.dailySummary || !this.mealsList) {
+            throw new Error('Required DOM elements not found');
+        }
+
         try {
             await this.loadContent();
         } catch (error) {
@@ -30,13 +35,13 @@ class MainScreen {
         const totals = this.service.getDailyTotals(todayMeals);
         console.log('Totals calculated:', totals);
         
-        this.renderNutritionSummary(totals, settings);
+        this.renderDailySummary(totals, settings);
         this.renderMealsList(allMeals);
     }
 
-    renderNutritionSummary(totals, settings) {
+    renderDailySummary(totals, settings) {
         console.log('Rendering nutrition summary...');
-        this.nutritionSummary.innerHTML = `
+        this.dailySummary.innerHTML = `
             <div class="nutrient-card">
                 <h3>Calories</h3>
                 <div class="progress-bar">
@@ -129,5 +134,8 @@ class MainScreen {
     }
 }
 
-// Initialize the screen
-const mainScreen = new MainScreen(); 
+// Initialize the screen only after DOM is fully loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    const mainScreen = new MainScreen();
+    await mainScreen.init();
+}); 

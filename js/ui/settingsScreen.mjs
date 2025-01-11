@@ -1,3 +1,4 @@
+import { NutritionService } from '../services/nutritionService.mjs';
 class SettingsScreen {
     constructor() {
         this.service = new NutritionService();
@@ -22,10 +23,10 @@ class SettingsScreen {
         event.preventDefault();
         try {
             const settings = {
-                caloriesGoal: document.getElementById('caloriesGoal').value,
-                fatsGoal: document.getElementById('fatsGoal').value || null,
-                proteinGoal: document.getElementById('proteinGoal').value || null,
-                carbsGoal: document.getElementById('carbsGoal').value || null
+                targetCalories: document.getElementById('caloriesGoal').value,
+                targetFat: document.getElementById('fatsGoal').value || null,
+                targetProtein: document.getElementById('proteinGoal').value || null,
+                targetCarbs: document.getElementById('carbsGoal').value || null
             };
             console.log(settings);
             await this.service.saveSettings(settings);

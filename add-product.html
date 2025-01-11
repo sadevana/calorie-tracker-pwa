@@ -24,33 +24,30 @@
         <main id="app-content">
             <form id="productForm" class="product-form">
                 <div class="form-group">
-                    <label>Product Name</label>
+                    <label for="productName">Product Name</label>
                     <input type="text" id="productName" required>
                 </div>
-                <h3 class="form-section-title">Nutritional values per 100g:</h3>
                 <div class="form-group">
-                    <label>Calories</label>
+                    <label for="calories">Calories (per 100g)</label>
                     <input type="number" id="calories" required>
                 </div>
                 <div class="form-group">
-                    <label>Fats (g)</label>
-                    <input type="number" id="fats" step="0.1" required>
+                    <label for="fats">Fats (per 100g)</label>
+                    <input type="number" id="fats" required>
                 </div>
                 <div class="form-group">
-                    <label>Protein (g)</label>
-                    <input type="number" id="protein" step="0.1" required>
+                    <label for="protein">Protein (per 100g)</label>
+                    <input type="number" id="protein" required>
                 </div>
                 <div class="form-group">
-                    <label>Carbs (g)</label>
-                    <input type="number" id="carbs" step="0.1" required>
+                    <label for="carbs">Carbs (per 100g)</label>
+                    <input type="number" id="carbs" required>
                 </div>
                 <button type="submit">Add Product</button>
             </form>
         </main>
     </div>
 
-    <script src="js/db/repository.js"></script>
-    <script src="js/services/nutritionService.js"></script>
-    <script src="js/ui/addProductScreen.js"></script>
+    <script type="module" src="js/ui/addProductScreen.js"></script>
 </body>
 </html> 
