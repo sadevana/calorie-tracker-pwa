@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4CAF50">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4CAF50" />
     <title>Settings - Nutrition Tracker</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png" />
 </head>
+
 <body>
     <div class="app">
         <header>
@@ -20,33 +22,84 @@
                 <a href="settings.html" class="active">Settings</a>
             </nav>
         </header>
-        
-        <main id="app-content">
+
+        <main>
             <form id="settingsForm" class="settings-form">
                 <div class="form-group">
                     <label for="caloriesTarget">Daily Calories Target</label>
-                    <input type="number" id="caloriesTarget" required>
+                    <input type="number" id="caloriesTarget" required />
                 </div>
                 <div class="form-group">
                     <label for="fatsTarget">Daily Fats Target (g)</label>
-                    <input type="number" id="fatsTarget">
+                    <input type="number" id="fatsTarget" />
                 </div>
                 <div class="form-group">
                     <label for="proteinTarget">Daily Protein Target (g)</label>
-                    <input type="number" id="proteinTarget">
+                    <input type="number" id="proteinTarget" />
                 </div>
                 <div class="form-group">
                     <label for="carbsTarget">Daily Carbs Target (g)</label>
-                    <input type="number" id="carbsTarget">
+                    <input type="number" id="carbsTarget" />
                 </div>
                 <button type="submit">Save Settings</button>
             </form>
         </main>
     </div>
 
-    <script type="module" src="js/ui/settingsScreen.mjs">
-        const settingsScreen = new SettingsScreen();
-        settingsScreen.loadExistingSettings();
+    <script type="module">
+        import { NutritionService } from './js/services/nutritionService.mjs';
+        import { getTypedElementById } from './js/utils/html.mjs';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            /** @type {NutritionService} */
+            const service = new NutritionService();
+
+            /** @type {HTMLFormElement} */
+            const form = getTypedElementById('settingsForm');
+            /** @type {HTMLInputElement} */
+            const caloriesEl = getTypedElementById('caloriesTarget');
+            /** @type {HTMLInputElement} */
+            const fatsEl = getTypedElementById('fatsTarget');
+            /** @type {HTMLInputElement} */
+            const proteinEl = getTypedElementById('proteinTarget');
+            /** @type {HTMLInputElement} */
+            const carbsEl = getTypedElementById('carbsTarget');
+
+            try {
+                const settings = await service.getSettings();
+
+                if (!settings) {
+                    alert('No settings found. Please set your target values.');
+                } else {
+                    caloriesEl.value = settings.targetCalories?.toString() ?? '';
+                    fatsEl.value = settings.targetFat?.toString() ?? '';
+                    proteinEl.value = settings.targetProtein?.toString() ?? '';
+                    carbsEl.value = settings.targetCarbs?.toString() ?? '';
+                }
+            } catch (err) {
+                console.error('Error fetching settings:', err);
+                alert('Failed to load settings. Please see console for details.');
+            }
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                try {
+                    const newSettings = {
+                        targetCalories: Number(caloriesEl.value),
+                        targetFat: fatsEl.value ? Number(fatsEl.value) : null,
+                        targetProtein: proteinEl.value ? Number(proteinEl.value) : null,
+                        targetCarbs: carbsEl.value ? Number(carbsEl.value) : null,
+                    };
+
+                    await service.saveSettings(newSettings);
+                    window.location.href = 'index.html';
+                } catch (err) {
+                    console.error('Error saving settings:', err);
+                    alert('Failed to save settings. Please see console for details.');
+                }
+            });
+        });
     </script>
 </body>
-</html> 
+
+</html>

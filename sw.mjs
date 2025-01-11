@@ -13,7 +13,6 @@ const ASSETS_TO_CACHE = [
     '/js/ui/mainScreen.mjs',
     '/js/ui/addMealScreen.mjs',
     '/js/ui/addProductScreen.mjs',
-    '/js/ui/settingsScreen.mjs',
     '/manifest.json',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png'
