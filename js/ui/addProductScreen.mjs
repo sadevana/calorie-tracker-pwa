@@ -1,11 +1,23 @@
+import { NutritionService } from '../services/nutritionService.mjs';
+import { getTypedElementById } from '../utils/html.mjs';
+
 class AddProductScreen {
+    /** @type {NutritionService} */ service;
+    /** @type {HTMLInputElement} */ productName;
+    /** @type {HTMLInputElement} */ calories;
+    /** @type {HTMLInputElement} */ fats;
+    /** @type {HTMLInputElement} */ protein;
+    /** @type {HTMLInputElement} */ carbs;
+    /** @type {HTMLFormElement} */ form;
+
     constructor() {
         this.service = new NutritionService();
-        this.form = document.getElementById('productForm');
-        this.initialize();
-    }
-
-    initialize() {
+        this.productName = getTypedElementById('productName');
+        this.calories = getTypedElementById('calories');
+        this.fats = getTypedElementById('fats');
+        this.protein = getTypedElementById('protein');
+        this.carbs = getTypedElementById('carbs');
+        this.form = getTypedElementById('productForm');
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
@@ -13,11 +25,11 @@ class AddProductScreen {
         event.preventDefault();
         try {
             const product = {
-                name: document.getElementById('productName').value,
-                calories: document.getElementById('calories').value,
-                fats: document.getElementById('fats').value,
-                protein: document.getElementById('protein').value,
-                carbs: document.getElementById('carbs').value
+                name: this.productName.value,
+                calories: this.calories.value,
+                fats: this.fats.value,
+                protein: this.protein.value,
+                carbs: this.carbs.value
             };
 
             await this.service.addProduct(product);
@@ -28,5 +40,7 @@ class AddProductScreen {
     }
 }
 
-// Initialize the screen
-const addProductScreen = new AddProductScreen(); 
+
+document.addEventListener('DOMContentLoaded', () => {
+    const addProductScreen = new AddProductScreen();
+});

@@ -1,32 +1,49 @@
 import { NutritionService } from '../services/nutritionService.mjs';
+import { getTypedElementById } from '../utils/html.mjs';
+
 class SettingsScreen {
+    /** @type {NutritionService} */ service;
+    /** @type {HTMLInputElement} */ caloriesTarget;
+    /** @type {HTMLInputElement} */ fatsTarget;
+    /** @type {HTMLInputElement} */ proteinTarget;
+    /** @type {HTMLInputElement} */ carbsTarget;
+    /** @type {HTMLFormElement} */ form;
+
     constructor() {
         this.service = new NutritionService();
-        this.form = document.getElementById('settingsForm');
-        this.initialize();
-    }
-
-    async initialize() {
-        await this.loadSettings();
+        this.caloriesTarget = getTypedElementById('caloriesTarget');
+        this.fatsTarget = getTypedElementById('fatsTarget');
+        this.proteinTarget = getTypedElementById('proteinTarget');
+        this.carbsTarget = getTypedElementById('carbsTarget');
+        this.form = getTypedElementById('settingsForm');
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
-    async loadSettings() {
+    async init() {
         const settings = await this.service.getSettings();
-        document.getElementById('caloriesGoal').value = settings.targetCalories;
-        document.getElementById('fatsGoal').value = settings.targetFat || '';
-        document.getElementById('proteinGoal').value = settings.targetProtein || '';
-        document.getElementById('carbsGoal').value = settings.targetCarbs || '';
+        if (!settings) {
+            alert('No settings found. Please set your target values.');
+            return;
+        }
+        this.caloriesTarget.value = String(settings.targetCalories);
+        this.fatsTarget.value = settings.targetFat ? String(settings.targetFat) : '';
+        this.proteinTarget.value = settings.targetProtein ? String(settings.targetProtein) : '';
+        this.carbsTarget.value = settings.targetCarbs ? String(settings.targetCarbs) : '';
     }
 
     async handleSubmit(event) {
         event.preventDefault();
         try {
+            const caloriesInput = this.caloriesTarget.value;
+            const fatsInput = this.fatsTarget.value;
+            const proteinInput = this.proteinTarget.value;
+            const carbsInput = this.carbsTarget.value;
+
             const settings = {
-                targetCalories: document.getElementById('caloriesGoal').value,
-                targetFat: document.getElementById('fatsGoal').value || null,
-                targetProtein: document.getElementById('proteinGoal').value || null,
-                targetCarbs: document.getElementById('carbsGoal').value || null
+                targetCalories: Number(caloriesInput),
+                targetFat: fatsInput ? Number(fatsInput) : null,
+                targetProtein: proteinInput ? Number(proteinInput) : null,
+                targetCarbs: carbsInput ? Number(carbsInput) : null
             };
             console.log(settings);
             await this.service.saveSettings(settings);
@@ -37,5 +54,7 @@ class SettingsScreen {
     }
 }
 
-// Initialize the screen
-const settingsScreen = new SettingsScreen(); 
+document.addEventListener('DOMContentLoaded', async () => {
+    const settingsScreen = new SettingsScreen();
+    await settingsScreen.init();
+});

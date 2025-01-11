@@ -7,6 +7,8 @@ import { Repository } from '../db/repository.mjs';
  */
 
 export class NutritionService {
+    /** @type {Repository} */ repository;
+    
     constructor() {
         this.repository = new Repository();
     }

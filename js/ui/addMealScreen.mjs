@@ -1,18 +1,21 @@
 import { NutritionService } from '../services/nutritionService.mjs';
+import { getTypedElementById } from '../utils/html.mjs';
 
 /** @typedef {import('../services/nutritionService.mjs').Product} Product */
 
 class AddMealScreen {
+    /** @type {NutritionService} */ service;
+    /** @type {HTMLInputElement} */ searchInput;
+    /** @type {HTMLDivElement} */ searchResults;
+    /** @type {HTMLDivElement} */ selectedProducts;
+    /** @type {HTMLButtonElement} */ submitButton;
+
     constructor() {
         this.service = new NutritionService();
-        this.searchInput = /** @type {HTMLInputElement} */ (document.getElementById('productSearch'));
-        this.searchResults = /** @type {HTMLDivElement} */ (document.getElementById('searchResults'));
-        this.selectedProducts = /** @type {HTMLDivElement} */ (document.getElementById('selectedProducts'));
-        this.submitButton = /** @type {HTMLButtonElement} */ (document.getElementById('submitMeal'));
-        this.initialize();
-    }
-
-    initialize() {
+        this.searchInput = getTypedElementById('productSearch');
+        this.searchResults = getTypedElementById('searchResults');
+        this.selectedProducts = getTypedElementById('selectedProducts');
+        this.submitButton = getTypedElementById('submitMeal');
         this.searchInput.addEventListener('input', () => this.handleSearch());
         this.submitButton.addEventListener('click', () => this.handleSubmit());
     }
@@ -113,7 +116,6 @@ class AddMealScreen {
     }
 }
 
-// Initialize the screen and expose it globally for event handlers
-/** @type {any} */
-const w = window;
-w.addMealScreen = new AddMealScreen(); 
+document.addEventListener('DOMContentLoaded', () => {
+    const addMealScreen = new AddMealScreen();
+});

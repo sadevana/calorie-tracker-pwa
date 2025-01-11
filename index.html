@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#4CAF50">
     <title>Nutrition Tracker</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.mjson">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" type="image/png" href="icons/icon-192x192.png">
 </head>
@@ -30,11 +30,11 @@
     <script>
         // Register service worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('/sw.mjs')
                 .then(registration => console.log('ServiceWorker registered'))
                 .catch(error => console.log('ServiceWorker registration failed:', error));
         }
     </script>
-    <script type="module" src="js/ui/mainScreen.js" defer></script>
+    <script type="module" src="js/ui/mainScreen.mjs" defer></script>
 </body>
 </html> 

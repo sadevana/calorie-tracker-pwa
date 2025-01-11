@@ -24,26 +24,29 @@
         <main id="app-content">
             <form id="settingsForm" class="settings-form">
                 <div class="form-group">
-                    <label for="caloriesGoal">Daily Calories Goal</label>
-                    <input type="number" id="caloriesGoal" required>
+                    <label for="caloriesTarget">Daily Calories Target</label>
+                    <input type="number" id="caloriesTarget" required>
                 </div>
                 <div class="form-group">
-                    <label for="fatsGoal">Daily Fats Goal (g)</label>
-                    <input type="number" id="fatsGoal">
+                    <label for="fatsTarget">Daily Fats Target (g)</label>
+                    <input type="number" id="fatsTarget">
                 </div>
                 <div class="form-group">
-                    <label for="proteinGoal">Daily Protein Goal (g)</label>
-                    <input type="number" id="proteinGoal">
+                    <label for="proteinTarget">Daily Protein Target (g)</label>
+                    <input type="number" id="proteinTarget">
                 </div>
                 <div class="form-group">
-                    <label for="carbsGoal">Daily Carbs Goal (g)</label>
-                    <input type="number" id="carbsGoal">
+                    <label for="carbsTarget">Daily Carbs Target (g)</label>
+                    <input type="number" id="carbsTarget">
                 </div>
                 <button type="submit">Save Settings</button>
             </form>
         </main>
     </div>
 
-    <script type="module" src="js/ui/settingsScreen.js"></script>
+    <script type="module" src="js/ui/settingsScreen.mjs">
+        const settingsScreen = new SettingsScreen();
+        settingsScreen.loadExistingSettings();
+    </script>
 </body>
 </html> 

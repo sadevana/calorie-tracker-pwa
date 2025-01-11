@@ -49,15 +49,8 @@ const ascendingCursor = 'next';
 const descendingCursor = 'prev';
 
 export class Repository {
-    /**
-     * @type {IDBDatabase | null}
-     */
-    db = null;
-
-    /**
-     * @type {Promise<void>}
-     */
-    initPromise = null;
+    /** @type {IDBDatabase | null} */ db = null;
+    /** @type {Promise<void>} */ initPromise;
 
     constructor() {
         this.dbName = 'CalorieTrackerDB';
@@ -204,52 +197,6 @@ export class Repository {
                     .then(result => resolve(result))
                     .catch(error => reject(error));
             }
-        });
-    }
-
-    /**
-     * Paginate through items in an IndexedDB object store using a specified index.
-     * @template T
-     * @param {string} storeName - The name of the store to perform the transaction on.
-     * @param {string} indexName - The name of the index to use for pagination.
-     * @param {IDBCursorDirection} cursorDirection - The direction of the cursor ('next', 'prev', etc.).
-     * @param {number} page - The page number (1-based).
-     * @param {number} pageSize - The number of items per page.
-     * @returns {Promise<T[]>} A promise that resolves to an array of items for the requested page.
-     */
-    async paginate(storeName, indexName, cursorDirection, page, pageSize) {
-        return this.performTransaction(storeName, 'readonly', store => {
-            return new Promise((resolve, reject) => {
-                const index = store.index(indexName);
-                const results = [];
-                let skipped = 0;
-                const startOffset = (page - 1) * pageSize;
-
-                const cursorRequest = index.openCursor(null, cursorDirection);
-
-                cursorRequest.onsuccess = () => {
-                    const cursor = cursorRequest.result;
-
-                    if (!cursor) {
-                        return resolve(results);
-                    }
-
-                    if (skipped < startOffset) {
-                        skipped++;
-                        cursor.continue();
-                        return;
-                    }
-
-                    if (results.length < pageSize) {
-                        results.push(cursor.value);
-                        cursor.continue();
-                    } else {
-                        return resolve(results);
-                    }
-                };
-
-                cursorRequest.onerror = () => reject(cursorRequest.error);
-            });
         });
     }
 }

@@ -1,19 +1,18 @@
 import { NutritionService } from '../services/nutritionService.mjs';
+import { getTypedElementById } from '../utils/html.mjs';
 
 class MainScreen {
+    /** @type {NutritionService} */ service;
+    /** @type {HTMLDivElement} */ dailySummary;
+    /** @type {HTMLDivElement} */ mealsList;
+
     constructor() {
         this.service = new NutritionService();
+        this.dailySummary = getTypedElementById('dailySummary');
+        this.mealsList = getTypedElementById('mealsList');
     }
 
     async init() {
-        this.dailySummary = document.getElementById('dailySummary');
-        this.mealsList = document.getElementById('mealsList');
-        this.loadMore = document.getElementById('loadMore');
-
-        if (!this.dailySummary || !this.mealsList) {
-            throw new Error('Required DOM elements not found');
-        }
-
         try {
             await this.loadContent();
         } catch (error) {
