@@ -23,10 +23,10 @@ class Repository {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 
-                // Products store
+                // Products store with case-insensitive search
                 if (!db.objectStoreNames.contains(this.stores.products)) {
                     const productStore = db.createObjectStore(this.stores.products, { keyPath: 'id', autoIncrement: true });
-                    productStore.createIndex('nameIndex', 'name');
+                    productStore.createIndex('nameIndex', 'nameLower');
                 }
 
                 // Meals store
@@ -52,15 +52,20 @@ class Repository {
     // Products methods
     async addProduct(product) {
         await this.ensureDB();
+        const productWithLowerCase = {
+            ...product,
+            nameLower: product.name.toLowerCase()
+        };
         return this.performTransaction(this.stores.products, 'readwrite', store => {
-            return store.add(product);
+            return store.add(productWithLowerCase);
         });
     }
 
     async searchProducts(query) {
         await this.ensureDB();
+        const queryLower = query.toLowerCase();
         return this.performTransaction(this.stores.products, 'readonly', store => {
-            return store.index('nameIndex').getAll(IDBKeyRange.bound(query, query + '\uffff'));
+            return store.index('nameIndex').getAll(IDBKeyRange.bound(queryLower, queryLower + '\uffff'));
         });
     }
 
