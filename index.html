@@ -80,13 +80,7 @@
         function renderDailySummary(totals, settings) {
             console.log('Rendering nutrition summary...');
             dailySummary.innerHTML = `
-                <div class="nutrient-card">
-                    <h3>Calories</h3>
-                    <div class="progress-bar">
-                        <div class="progress" style="width: ${(totals.calories / settings.targetCalories * 100)}%"></div>
-                    </div>
-                    <p>${totals.calories} / ${settings.targetCalories}</p>
-                </div>
+                ${renderNutrientCard('Calories', totals.calories, settings.targetCalories)}
                 ${renderNutrientCard('Fats', totals.fats, settings.targetFat)}
                 ${renderNutrientCard('Protein', totals.protein, settings.targetProtein)}
                 ${renderNutrientCard('Carbs', totals.carbs, settings.targetCarbs)}
@@ -98,7 +92,7 @@
          * @param {Meal[]} meals
          * @returns {DailyTotals}
          */
-        function getDailyTotals(meals) {
+        function sumMeals(meals) {
             return {
                 calories: meals.reduce((sum, meal) => sum + meal.totalCalories, 0),
                 fats: meals.reduce((sum, meal) => sum + meal.totalFat, 0),
@@ -133,7 +127,7 @@
 
             mealsList.innerHTML = sortedDates.map(date => {
                 const dayMeals = mealsByDate[date];
-                const dayTotals = getDailyTotals(dayMeals);
+                const dayTotals = sumMeals(dayMeals);
                 const dateObj = new Date(date);
                 const isToday = date === new Date().toISOString().split('T')[0];
                 const dateDisplay = isToday ? 'Today' : dateObj.toLocaleDateString();
@@ -176,28 +170,25 @@
             }).join('');
         }
 
-        // Initialize the screen only after DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                console.log('Loading content...');
-                const settings = await service.getSettings();
-                console.log('Settings loaded:', settings);
+        try {
+            console.log('Loading content...');
+            const settings = await service.getSettings();
+            console.log('Settings loaded:', settings);
 
-                const allMeals = await service.getMealHistory();
-                console.log('Meals loaded:', allMeals);
+            const allMeals = await service.getMealHistory();
+            console.log('Meals loaded:', allMeals);
 
-                const todayMeals = allMeals.filter(m =>
-                    m.date === new Date().toISOString().split('T')[0]
-                );
-                const totals = getDailyTotals(todayMeals);
-                console.log('Totals calculated:', totals);
+            const todayMeals = allMeals.filter(m =>
+                m.date === new Date().toISOString().split('T')[0]
+            );
+            const totals = sumMeals(todayMeals);
+            console.log('Totals calculated:', totals);
 
-                renderDailySummary(totals, settings);
-                renderMealsList(allMeals);
-            } catch (error) {
-                console.error('Error loading content:', error);
-            }
-        });
+            renderDailySummary(totals, settings);
+            renderMealsList(allMeals);
+        } catch (error) {
+            console.error('Error loading content:', error);
+        }
     </script>
 </body>
 
