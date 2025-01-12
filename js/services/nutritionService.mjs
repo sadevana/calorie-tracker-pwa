@@ -303,4 +303,15 @@ export class NutritionService {
     calculateNutrient(value, grams) {
         return parseFloat(((value * grams) / 100).toFixed(1));
     }
+
+    /**
+     * Deletes a product by ID
+     * @param {number} productId - The ID of the product to delete
+     * @returns {Promise<void>}
+     */
+    async deleteProduct(productId) {
+        await this.performTransaction(this.stores.products, readwrite, store => {
+            return store.delete(productId);
+        });
+    }
 }
