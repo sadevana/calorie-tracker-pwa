@@ -5,7 +5,7 @@ const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
     '/add-meal.html',
-    '/add-product.html',
+    '/products.html',
     '/settings.html',
     '/css/styles.css',
     '/js/services/nutritionService.mjs',

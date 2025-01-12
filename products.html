@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Products - Nutrition Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+</head>
+
+<body>
+    <div class="app">
+        <header>
+            <h1>Products</h1>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="add-meal.html">Add Meal</a>
+                <a href="products.html" class="active">Products</a>
+                <a href="settings.html">Settings</a>
+            </nav>
+        </header>
+
+        <main id="app-content">
+            <div class="products-container">
+                <button id="addNewBtn" class="add-product-btn">Add Product</button>
+                <div class="products-table-container">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Calories (per 100g)</th>
+                                <th>Fats (per 100g)</th>
+                                <th>Protein (per 100g)</th>
+                                <th>Carbs (per 100g)</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <!-- Products will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.mjs')
+                .then(registration => console.log('ServiceWorker registered'))
+                .catch(error => console.log('ServiceWorker registration failed:', error));
+        }
+    </script>
+    <script type="module">
+        import { NutritionService } from './js/services/nutritionService.mjs';
+        import { getTypedElementById } from './js/utils/html.mjs';
+
+        /** @typedef {import('./js/services/nutritionService.mjs').Product} Product */
+        /** @typedef {import('./js/services/nutritionService.mjs').AddProductRequest} AddProductRequest */
+
+        /** @type {NutritionService} */
+        const service = new NutritionService();
+        /** @type {HTMLTableSectionElement} */
+        const tableBody = getTypedElementById('productsTableBody');
+        /** @type {HTMLButtonElement} */
+        const addNewBtn = getTypedElementById('addNewBtn');
+
+        /**
+         * Creates a new product row for input
+         * @returns {HTMLTableRowElement}
+         */
+        function createNewProductRow() {
+            const row = document.createElement('tr');
+            row.className = 'new-product-row';
+            row.innerHTML = `
+                <td><input type="text" class="product-input" name="name" placeholder="Product name" required></td>
+                <td><input type="number" class="product-input" name="calories" placeholder="Calories" required></td>
+                <td><input type="number" class="product-input" name="fats" placeholder="Fats" required></td>
+                <td><input type="number" class="product-input" name="protein" placeholder="Protein" required></td>
+                <td><input type="number" class="product-input" name="carbs" placeholder="Carbs" required></td>
+                <td>
+                    <button class="confirm-btn">✓</button>
+                    <button class="cancel-btn">✕</button>
+                </td>
+            `;
+
+            // Add event listeners
+            const confirmBtn = row.querySelector('.confirm-btn');
+            const cancelBtn = row.querySelector('.cancel-btn');
+
+            confirmBtn.addEventListener('click', async () => {
+                const inputs = row.querySelectorAll('.product-input');
+                const values = {};
+                let isValid = true;
+
+                inputs.forEach(input => {
+                    const inputEl = /** @type {HTMLInputElement} */ (input);
+                    values[inputEl.name] = inputEl.value;
+                    if (!inputEl.value) {
+                        isValid = false;
+                        inputEl.classList.add('error');
+                    }
+                });
+
+                if (!isValid) {
+                    return;
+                }
+
+                try {
+                    await service.addProduct(/** @type {AddProductRequest} */ (values));
+                    row.remove();
+                    loadProducts(); // Refresh the list
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                row.remove();
+                addNewBtn.disabled = false;
+            });
+
+            return row;
+        }
+
+        /**
+         * Creates a row for an existing product
+         * @param {Product} product
+         * @returns {HTMLTableRowElement}
+         */
+        function createProductRow(product) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${product.name}</td>
+                <td>${product.calories}</td>
+                <td>${product.fat}</td>
+                <td>${product.protein}</td>
+                <td>${product.carbs}</td>
+                <td></td>
+            `;
+            return row;
+        }
+
+        async function loadProducts() {
+            try {
+                const products = await service.getAllProducts();
+                tableBody.innerHTML = '';
+                products.forEach(product => {
+                    tableBody.appendChild(createProductRow(product));
+                });
+            } catch (error) {
+                console.error('Error loading products:', error);
+                alert('Failed to load products');
+            }
+        }
+
+        // Add event listeners
+        addNewBtn.addEventListener('click', () => {
+            const newRow = createNewProductRow();
+            tableBody.insertBefore(newRow, tableBody.firstChild);
+            addNewBtn.disabled = true;
+            newRow.querySelector('input').focus();
+        });
+
+        // Load products when the page loads
+        document.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
+</body>
+
+</html>
