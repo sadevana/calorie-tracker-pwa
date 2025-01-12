@@ -94,6 +94,20 @@
         }
 
         /**
+         * Calculate daily totals from meals
+         * @param {Meal[]} meals
+         * @returns {DailyTotals}
+         */
+        function getDailyTotals(meals) {
+            return {
+                calories: meals.reduce((sum, meal) => sum + meal.totalCalories, 0),
+                fats: meals.reduce((sum, meal) => sum + meal.totalFat, 0),
+                protein: meals.reduce((sum, meal) => sum + meal.totalProtein, 0),
+                carbs: meals.reduce((sum, meal) => sum + meal.totalCarbs, 0)
+            };
+        }
+
+        /**
          * Renders the meals list grouped by date
          * @param {Meal[]} meals - List of meals to render
          */
@@ -119,7 +133,7 @@
 
             mealsList.innerHTML = sortedDates.map(date => {
                 const dayMeals = mealsByDate[date];
-                const dayTotals = service.getDailyTotals(dayMeals);
+                const dayTotals = getDailyTotals(dayMeals);
                 const dateObj = new Date(date);
                 const isToday = date === new Date().toISOString().split('T')[0];
                 const dateDisplay = isToday ? 'Today' : dateObj.toLocaleDateString();
@@ -175,7 +189,7 @@
                 const todayMeals = allMeals.filter(m =>
                     m.date === new Date().toISOString().split('T')[0]
                 );
-                const totals = service.getDailyTotals(todayMeals);
+                const totals = getDailyTotals(todayMeals);
                 console.log('Totals calculated:', totals);
 
                 renderDailySummary(totals, settings);

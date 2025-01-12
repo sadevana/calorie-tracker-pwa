@@ -1,17 +1,147 @@
-import { Repository } from '../db/repository.mjs';
-
 /**
- * @typedef {import('../db/repository.mjs').Product} DbProduct
- * @typedef {import('../db/repository.mjs').Meal} DbMeal
- * @typedef {import('../db/repository.mjs').Settings} DbSettings
+ * @typedef {Object} Product
+ * @property {number} [id] - The unique identifier for the product
+ * @property {string} name - Product name
+ * @property {string} [nameLower] - Lowercase product name for case-insensitive search (internal use)
+ * @property {number} calories - Calories per 100g
+ * @property {number} protein - Protein per 100g
+ * @property {number} carbs - Carbs per 100g
+ * @property {number} fat - Fat per 100g
  */
 
+/**
+ * @typedef {Object} MealProduct
+ * @property {number} productID - ID of the product
+ * @property {string} productName - Name of the product
+ * @property {number} grams - Amount in grams
+ * @property {number} calories - Total calories for this amount
+ * @property {number} protein - Total protein for this amount
+ * @property {number} carbs - Total carbs for this amount
+ * @property {number} fat - Total fat for this amount
+ */
+
+/**
+ * @typedef {Object} Meal
+ * @property {number} [id] - The unique identifier for the meal
+ * @property {string} date - Date of the meal (YYYY-MM-DD)
+ * @property {number} timestamp - Unix timestamp of the meal
+ * @property {MealProduct[]} products - Products in the meal
+ * @property {number} totalCalories - Total calories of the meal
+ * @property {number} totalProtein - Total protein of the meal
+ * @property {number} totalCarbs - Total carbs of the meal
+ * @property {number} totalFat - Total fat of the meal
+ */
+
+/**
+ * @typedef {Object} Settings
+ * @property {string} [id] - The unique identifier for the settings
+ * @property {number} targetCalories - Daily calorie goal
+ * @property {number|null} targetProtein - Daily protein goal in grams
+ * @property {number|null} targetCarbs - Daily carbs goal in grams
+ * @property {number|null} targetFat - Daily fat goal in grams
+ */
+
+/**
+ * @typedef {Object} DailyTotals
+ * @property {number} calories - Total calories
+ * @property {number} fats - Total fats in grams
+ * @property {number} protein - Total protein in grams
+ * @property {number} carbs - Total carbs in grams
+ */
+
+const settingsID = 'user-settings';
+const readonly = 'readonly';
+const readwrite = 'readwrite';
+
 export class NutritionService {
-    /** @type {Repository} */ repository;
+    /** @type {IDBDatabase | null} */ db = null;
+    /** @type {Promise<void>} */ initPromise;
 
     constructor() {
-        this.repository = new Repository();
+        this.dbName = 'CalorieTrackerDB';
+        this.dbVersion = 1;
+        this.stores = {
+            products: 'products',
+            meals: 'meals',
+            settings: 'settings'
+        };
+        this.initPromise = this.init();
     }
+
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.dbVersion);
+
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                this.db = request.result;
+                resolve();
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = request.result;
+                
+                // Products store with case-insensitive search
+                if (!db.objectStoreNames.contains(this.stores.products)) {
+                    const productStore = db.createObjectStore(this.stores.products, { keyPath: 'id', autoIncrement: true });
+                    productStore.createIndex('nameIndex', 'nameLower');
+                }
+
+                // Meals store
+                if (!db.objectStoreNames.contains(this.stores.meals)) {
+                    const mealStore = db.createObjectStore(this.stores.meals, { keyPath: 'id', autoIncrement: true });
+                    mealStore.createIndex('dateIndex', 'date');
+                }
+
+                // Settings store
+                if (!db.objectStoreNames.contains(this.stores.settings)) {
+                    db.createObjectStore(this.stores.settings, { keyPath: 'id' });
+                }
+            };
+        });
+    }
+
+    /**
+     * @template T
+     * @param {string} storeName - The name of the store to perform the transaction on
+     * @param {IDBTransactionMode} mode - The mode of the transaction ('readonly' or 'readwrite')
+     * @param {function(IDBObjectStore): IDBRequest<T> | Promise<T>} operation - The operation to perform on the store
+     * @returns {Promise<T>} A promise that resolves to the result of the operation
+     */
+    async performTransaction(storeName, mode, operation) {
+        await this.initPromise; // Wait for initialization to complete
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], mode);
+            const store = transaction.objectStore(storeName);
+
+            let request;
+            try {
+                request = operation(store);
+            } catch (error) {
+                reject(error);
+                return;
+            }
+
+            if (request instanceof IDBRequest) {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            } else {
+                // Handle promises returned from operations
+                Promise.resolve(request)
+                    .then(result => resolve(result))
+                    .catch(error => reject(error));
+            }
+        });
+    }
+
+    /**
+     * @typedef {Object} AddProductRequest
+     * @property {string} name - Product name
+     * @property {string|number} calories - Calories per 100g
+     * @property {string|number} fats - Fat per 100g
+     * @property {string|number} protein - Protein per 100g
+     * @property {string|number} carbs - Carbs per 100g
+     */
 
     /**
      * @param {AddProductRequest} product
@@ -26,7 +156,19 @@ export class NutritionService {
             throw new Error('Nutritional values must be positive numbers');
         }
 
-        return await this.repository.addProduct(this.mapProductRequestToDbProduct(product));
+        /** @type {Product} */
+        const newProduct = {
+            name: product.name.trim(),
+            nameLower: product.name.trim().toLowerCase(),
+            calories: Number(product.calories),
+            fat: Number(product.fats),
+            protein: Number(product.protein),
+            carbs: Number(product.carbs)
+        };
+
+        await this.performTransaction(this.stores.products, readwrite, store => {
+            return store.add(newProduct);
+        });
     }
 
     /**
@@ -34,17 +176,27 @@ export class NutritionService {
      * @returns {Promise<Product[]>}
      */
     async searchProducts(query) {
-        const dbProducts = await this.repository.searchProducts(query);
-        return dbProducts.map(p => this.mapDbProductToProduct(p));
+        const queryLower = query.toLowerCase();
+        const products = await this.performTransaction(this.stores.products, readonly, store => {
+            return store.index('nameIndex').getAll(IDBKeyRange.bound(queryLower, queryLower + '\uffff'));
+        });
+        return products;
     }
 
     /**
      * @returns {Promise<Product[]>}
      */
     async getAllProducts() {
-        const dbProducts = await this.repository.getAllProducts();
-        return dbProducts.map(p => this.mapDbProductToProduct(p));
+        return this.performTransaction(this.stores.products, readonly, store => {
+            return store.getAll();
+        });
     }
+
+    /**
+     * @typedef {Object} AddMealProductRequest
+     * @property {number} productId - ID of the product to add
+     * @property {number} grams - Amount in grams
+     */
 
     /**
      * @param {AddMealProductRequest[]} products
@@ -56,12 +208,12 @@ export class NutritionService {
         }
 
         const allProducts = await this.getAllProducts();
+        console.log(allProducts);
         const productMap = new Map(allProducts.map(p => [p.id, p]));
-
-        console.log(productMap);
 
         const now = new Date();
         const mealProducts = products.map(p => {
+            console.log(p, productMap);
             const product = productMap.get(p.productId);
             if (!product) {
                 throw new Error(`Product with ID ${p.productId} not found`);
@@ -79,8 +231,8 @@ export class NutritionService {
             };
         });
 
-        /** @type {DbMeal} */
-        const dbMeal = {
+        /** @type {Meal} */
+        const meal = {
             date: now.toISOString().split('T')[0],
             timestamp: now.getTime(),
             products: mealProducts,
@@ -90,7 +242,9 @@ export class NutritionService {
             totalFat: mealProducts.reduce((sum, p) => sum + p.fat, 0)
         };
 
-        return await this.repository.addMeal(dbMeal);
+        await this.performTransaction(this.stores.meals, readwrite, store => {
+            return store.add(meal);
+        });
     }
 
     /**
@@ -98,8 +252,9 @@ export class NutritionService {
      * @returns {Promise<Meal[]>}
      */
     async getMealHistory(limit = 100) {
-        const dbMeals = await this.repository.getMeals(limit);
-        return dbMeals.map(m => this.mapDbMealToMeal(m));
+        return this.performTransaction(this.stores.meals, readonly, store => {
+            return store.getAll(null, limit);
+        });
     }
 
     /**
@@ -111,83 +266,36 @@ export class NutritionService {
             throw new Error('Calories goal is required');
         }
 
-        return await this.repository.saveSettings(this.mapSettingsToDbSettings(settings));
+        await this.performTransaction(this.stores.settings, readwrite, store => {
+            return store.put({ ...settings, id: settingsID });
+        });
     }
 
     /**
      * @returns {Promise<Settings>}
      */
     async getSettings() {
-        const dbSettings = await this.repository.getSettings();
+        const settings = await this.performTransaction(this.stores.settings, readonly, store => {
+            return store.get(settingsID);
+        });
 
-        const defaultSettings = {
-            targetCalories: 2000,
-            targetFat: null,
-            targetProtein: null,
-            targetCarbs: null
-        };
-        return dbSettings ? this.mapDbSettingsToSettings(dbSettings) : defaultSettings;
-    }
+        if (!settings) {
+            // default settings
+            return {
+                targetCalories: 2000,
+                targetFat: null,
+                targetProtein: null,
+                targetCarbs: null
+            };
+        }
 
-    // mappers
-
-    /**
-     * Convert DB product to service product
-     * @param {DbProduct} dbProduct
-     * @returns {Product}
-     */
-    mapDbProductToProduct(dbProduct) {
-        const { nameLower, ...product } = dbProduct;
-        return product;
-    }
-
-    /**
-     * Convert service product to DB product
-     * @param {AddProductRequest} request
-     * @returns {DbProduct}
-     */
-    mapProductRequestToDbProduct(request) {
-        return {
-            name: request.name.trim(),
-            nameLower: request.name.trim().toLowerCase(),
-            calories: Number(request.calories),
-            fat: Number(request.fats),
-            protein: Number(request.protein),
-            carbs: Number(request.carbs)
-        };
-    }
-
-    /**
-     * Convert DB meal to service meal
-     * @param {DbMeal} dbMeal
-     * @returns {Meal}
-     */
-    mapDbMealToMeal(dbMeal) {
-        return dbMeal;
-    }
-
-    /**
-     * Convert DB settings to service settings
-     * @param {DbSettings} dbSettings
-     * @returns {Settings}
-     */
-    mapDbSettingsToSettings(dbSettings) {
-        const { id, ...settings } = dbSettings;
-        return settings;
-    }
-
-    /**
-     * Convert service settings to DB settings
-     * @param {Settings} settings
-     * @returns {DbSettings}
-     */
-    mapSettingsToDbSettings(settings) {
-        return settings;
+        const { id, ...rest } = settings;
+        return rest;
     }
 
     // helpers
     /**
- * Calculate nutrient value for a given amount of grams
+     * Calculate nutrient value for a given amount of grams
      * @param {number} value - Value per 100g
      * @param {number} grams - Amount in grams
      * @returns {number}
@@ -195,82 +303,4 @@ export class NutritionService {
     calculateNutrient(value, grams) {
         return parseFloat(((value * grams) / 100).toFixed(1));
     }
-
-    /**
-         * Calculate daily totals from meals
-         * @param {Meal[]} meals
-         * @returns {DailyTotals}
-         */
-    getDailyTotals(meals) {
-        return {
-            calories: meals.reduce((sum, meal) => sum + meal.totalCalories, 0),
-            fats: meals.reduce((sum, meal) => sum + meal.totalFat, 0),
-            protein: meals.reduce((sum, meal) => sum + meal.totalProtein, 0),
-            carbs: meals.reduce((sum, meal) => sum + meal.totalCarbs, 0)
-        };
-    }
 }
-
-/**
- * @typedef {Object} Product
- * @property {string} [id] - The unique identifier for the product
- * @property {string} name - Product name
- * @property {number} calories - Calories per 100g
- * @property {number} protein - Protein per 100g
- * @property {number} carbs - Carbs per 100g
- * @property {number} fat - Fat per 100g
- */
-
-/**
- * @typedef {Object} AddProductRequest
- * @property {string} name - Product name
- * @property {string|number} calories - Calories per 100g
- * @property {string|number} fats - Fat per 100g
- * @property {string|number} protein - Protein per 100g
- * @property {string|number} carbs - Carbs per 100g
- */
-
-/**
- * @typedef {Object} MealProduct
- * @property {string} productID - ID of the product
- * @property {string} productName - Name of the product
- * @property {number} grams - Amount in grams
- * @property {number} calories - Total calories for this amount
- * @property {number} protein - Total protein for this amount
- * @property {number} carbs - Total carbs for this amount
- * @property {number} fat - Total fat for this amount
- */
-
-/**
- * @typedef {Object} Meal
- * @property {string} [id] - The unique identifier for the meal
- * @property {string} date - Date of the meal (YYYY-MM-DD)
- * @property {number} timestamp - Unix timestamp of the meal
- * @property {MealProduct[]} products - Products in the meal
- * @property {number} totalCalories - Total calories of the meal
- * @property {number} totalProtein - Total protein of the meal
- * @property {number} totalCarbs - Total carbs of the meal
- * @property {number} totalFat - Total fat of the meal
- */
-
-/**
- * @typedef {Object} AddMealProductRequest
- * @property {string} productId - ID of the product to add
- * @property {string|number} grams - Amount in grams
- */
-
-/**
- * @typedef {Object} Settings
- * @property {number} targetCalories - Daily calorie goal
- * @property {number|null} targetProtein - Daily protein goal in grams
- * @property {number|null} targetCarbs - Daily carbs goal in grams
- * @property {number|null} targetFat - Daily fat goal in grams
- */
-
-/**
- * @typedef {Object} DailyTotals
- * @property {number} calories - Total calories
- * @property {number} fats - Total fats in grams
- * @property {number} protein - Total protein in grams
- * @property {number} carbs - Total carbs in grams
- */

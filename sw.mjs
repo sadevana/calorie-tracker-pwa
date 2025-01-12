@@ -8,7 +8,6 @@ const ASSETS_TO_CACHE = [
     '/add-product.html',
     '/settings.html',
     '/css/styles.css',
-    '/js/db/repository.mjs',
     '/js/services/nutritionService.mjs',
     '/js/utils/html.mjs',
     '/manifest.json',

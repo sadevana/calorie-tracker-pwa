@@ -159,7 +159,7 @@
 
         submitButton.addEventListener('click', async () => {
             const products =  /** @type {AddMealProductRequest[]} */ Array.from(selectedProducts.children).map(el => {
-                const productId = el.id.replace('meal-product-', '');
+                const productId = parseInt(el.id.replace('meal-product-', ''));
                 const input = /** @type {HTMLInputElement} */ (el.querySelector('.grams-input'));
                 const grams = parseFloat(input.value);
                 return { productId, grams };
